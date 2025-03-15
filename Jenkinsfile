@@ -58,21 +58,21 @@ pipeline {
             }
         }
 
-        stage("Build & Push Docker Image") {
+        stage('Build & Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('',DOCKER_PASS) {
-                        docker_image = docker.build "${IMAGE_NAME}"
-                    }
+                    // Build the Docker image
+                    def app = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
 
-                    docker.withRegistry('',DOCKER_PASS) {
-                        docker_image.push("${IMAGE_TAG}")
-                        docker_image.push('latest')
+                    // Authenticate with Docker Hub and push the image
+                    docker.withRegistry('https://index.docker.io/v1/', 'DOCKERHUB_CREDENTIALS') {
+                        app.push('latest')
+                        app.push("${env.BUILD_NUMBER}")
                     }
                 }
             }
         }
-        
+
         stage("Trivy Scan") {
             steps {
                 script {
