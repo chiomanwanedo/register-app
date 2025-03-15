@@ -58,17 +58,18 @@ pipeline {
             }
         }
 
-        stage("Build & Push Docker Image") {
+        stage('Build & Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'DOCKERHUB_CREDENTIALS') {
-                        def docker_image = docker.build("${IMAGE_NAME}")
-                        docker_image.push("${IMAGE_TAG}")
-                        docker_image.push("latest")
-                    }
-                }
+                    def app = docker.build("chiomanwanedo/register-app:${env.BUILD_NUMBER}")
+                    docker.withRegistry('https://index.docker.io/v1/', 'DOCKER_CREDENTIALS') {
+                    app.push('latest')
+                    app.push("${env.BUILD_NUMBER}")
             }
         }
+    }
+}
+
 
         stage("Trivy Scan") {
             steps {
