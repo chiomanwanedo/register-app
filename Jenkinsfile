@@ -60,9 +60,10 @@ pipeline {
 
         stage('Build & Push Docker Image') {
             steps {
-                script {
+        s       cript {
                     def app = docker.build("chiomanwanedo/register-app:${env.BUILD_NUMBER}")
-                    docker.withRegistry('https://index.docker.io/v1/', 'DOCKER_CREDENTIALS') {
+
+                    docker.withRegistry('https://index.docker.io/v1/', 'DOCKERHUB_CREDENTIALS') {
                     app.push('latest')
                     app.push("${env.BUILD_NUMBER}")
             }
