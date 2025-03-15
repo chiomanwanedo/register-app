@@ -61,8 +61,10 @@ pipeline {
         stage('Build & Push Docker Image') {
             steps {
                 script {
+                    // Build the Docker image
                     def app = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
 
+                    // Authenticate with Docker Hub and push the image
                     docker.withRegistry('https://index.docker.io/v1/', 'DOCKERHUB_CREDENTIALS') {
                         app.push('latest')
                         app.push("${env.BUILD_NUMBER}")
