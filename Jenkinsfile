@@ -1,4 +1,4 @@
-this is my file: compare with the previous one: pipeline {
+pipeline {
     agent { label 'jenkins-agent' }
 
     tools {
