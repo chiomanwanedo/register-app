@@ -84,8 +84,9 @@ pipeline {
         stage("Cleanup Artifacts") {
             steps {
                 script {
-                    sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true"
+                    sh "docker rmi ${IMAGE_NAME}:${env.BUILD_NUMBER} || true"
                     sh "docker rmi ${IMAGE_NAME}:latest || true"
+
                 }
             }
         }
