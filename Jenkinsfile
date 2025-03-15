@@ -7,12 +7,12 @@ pipeline {
     }
 
     environment {
-        APP_NAME = "register-app"  // Ensure this matches your Docker Hub repository
+        APP_NAME = "register-app"
         RELEASE = "1.0.0"
         DOCKER_CREDENTIALS = credentials("DOCKERHUB_CREDENTIALS")
-        IMAGE_NAME = "chiomanwanedo/${APP_NAME}" 
-        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-        JENKINS_API_TOKEN = credentials("jenkins-api-token")
+        IMAGE_NAME = "chiomanwanedo/${APP_NAME}"
+        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}" // Consider adding commit hash: "${RELEASE}-${BUILD_NUMBER}-${GIT_COMMIT}"
+        //JENKINS_API_TOKEN = credentials("jenkins-api-token") // Remove this! Use better CD trigger
     }
 
     stages {
@@ -30,21 +30,21 @@ pipeline {
 
         stage("Build Application") {
             steps {
-                sh "mvn clean package"
+                sh "set -e; mvn clean package" // Add set -e for error handling
             }
         }
 
         stage("Test Application") {
             steps {
-                sh "mvn test"
+                sh "set -e; mvn test" // Add set -e for error handling
             }
         }
 
         stage("SonarQube Analysis") {
             steps {
                 script {
-                    withSonarQubeEnv('SonarScanner') { 
-                        sh "mvn sonar:sonar"
+                    withSonarQubeEnv('SonarScanner') {
+                        sh "set -e; mvn sonar:sonar" // Add set -e for error handling
                     }
                 }
             }
@@ -76,7 +76,7 @@ pipeline {
         stage("Trivy Scan") {
             steps {
                 script {
-                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:latest --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL --format table"
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:latest --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL,MEDIUM --format table" // Include MEDIUM severity
                 }
             }
         }
@@ -84,37 +84,30 @@ pipeline {
         stage("Cleanup Artifacts") {
             steps {
                 script {
-                    sh "docker rmi ${IMAGE_NAME}:${env.BUILD_NUMBER} || true"
-                    sh "docker rmi ${IMAGE_NAME}:latest || true"
-
+                    sh "docker image inspect ${IMAGE_NAME}:${env.BUILD_NUMBER} > /dev/null 2>&1 && docker rmi ${IMAGE_NAME}:${env.BUILD_NUMBER} || true" // Check if image exists before removing
+                    sh "docker image inspect ${IMAGE_NAME}:latest > /dev/null 2>&1 && docker rmi ${IMAGE_NAME}:latest || true" // Check if image exists before removing
                 }
             }
         }
 
         stage("Trigger CD Pipeline") {
             steps {
-                script {
-                    sh """
-                    curl -v -k --user ChiomaVee:${JENKINS_API_TOKEN} \\
-                    -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
-                    --data 'IMAGE_TAG=${IMAGE_TAG}' \\
-                    'http://ec2-13-232-128-192.ap-south-1.compute.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'
-                    """
-                }
+                // Use Jenkins' built-in mechanisms for triggering builds securely
+                build job: 'gitops-register-app-cd', parameters: [string(name: 'IMAGE_TAG', value: "${IMAGE_TAG}")]
             }
         }
     }
 
     post {
         failure {
-            emailext body: '''${SCRIPT, template="groovy-html.template"}''', 
-                     subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Failed", 
-                     mimeType: 'text/html', to: "vanessaegwuibe08@gmail.com"
+            emailext body: '''${SCRIPT, template="groovy-html.template"}''',
+                      subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Failed",
+                      mimeType: 'text/html', to: "vanessaegwuibe08@gmail.com"
         }
         success {
-            emailext body: '''${SCRIPT, template="groovy-html.template"}''', 
-                     subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Successful", 
-                     mimeType: 'text/html', to: "vanessaegwuibe08@gmail.com"
+            emailext body: '''${SCRIPT, template="groovy-html.template"}''',
+                      subject: "${env.JOB_NAME} - Build # ${env.BUILD_NUMBER} - Successful",
+                      mimeType: 'text/html', to: "vanessaegwuibe08@gmail.com"
         }
     }
 }
