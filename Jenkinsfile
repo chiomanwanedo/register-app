@@ -10,7 +10,7 @@ pipeline {
         APP_NAME = "register-app-pipeline"
         RELEASE = "1.0.0"
         DOCKER_CREDENTIALS = credentials("DOCKERHUB_CREDENTIALS")
-        IMAGE_NAME = "ashfaque9x/${APP_NAME}"
+        IMAGE_NAME = "chiomanwanedo/${APP_NAME}"
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
         JENKINS_API_TOKEN = credentials("jenkins-api-token")
     }
@@ -60,17 +60,16 @@ pipeline {
 
         stage('Build & Push Docker Image') {
             steps {
-        s       cript {
-                    def app = docker.build("chiomanwanedo/register-app:${env.BUILD_NUMBER}")
+                script {
+                    def app = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DOCKERHUB_CREDENTIALS') {
-                    app.push('latest')
-                    app.push("${env.BUILD_NUMBER}")
+                        app.push('latest')
+                        app.push("${env.BUILD_NUMBER}")
+                    }
+                }
             }
         }
-    }
-}
-
 
         stage("Trivy Scan") {
             steps {
@@ -93,7 +92,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    curl -v -k --user ChiomaVee:${jenkins-api-token} \\
+                    curl -v -k --user ChiomaVee:${JENKINS_API_TOKEN} \\
                     -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
                     --data 'IMAGE_TAG=${IMAGE_TAG}' \\
                     'http://ec2-13-232-128-192.ap-south-1.compute.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'
