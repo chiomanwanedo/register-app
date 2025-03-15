@@ -12,7 +12,7 @@ pipeline {
         DOCKER_CREDENTIALS = credentials("DOCKERHUB_CREDENTIALS")
         IMAGE_NAME = "ashfaque9x/${APP_NAME}"
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
-        JENKINS_API_TOKEN = credentials("jenkins_api_token")
+        JENKINS_API_TOKEN = credentials("jenkins-api-token")
     }
     
     stages {
@@ -91,7 +91,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    curl -v -k --user ChiomaVee:${jenkins_api_token} \\
+                    curl -v -k --user ChiomaVee:${jenkins-api-token} \\
                     -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
                     --data 'IMAGE_TAG=${IMAGE_TAG}' \\
                     'http://ec2-13-232-128-192.ap-south-1.compute.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'
