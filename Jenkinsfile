@@ -7,11 +7,11 @@ pipeline {
     }
 
     environment {
-        APP_NAME = "register-app"  // Ensure this matches your Docker Hub repository
+        APP_NAME = "register-app"  
         RELEASE = "1.0.0"
-        DOCKER_CREDENTIALS = credentials("DOCKERHUB_CREDENTIALS")
         IMAGE_NAME = "chiomanwanedo/${APP_NAME}" 
-        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
+        IMAGE_TAG = "${RELEASE}-${env.BUILD_NUMBER}"
+        JENKINS_USER = credentials("jenkins-user")
         JENKINS_API_TOKEN = credentials("jenkins-api-token")
     }
 
@@ -58,16 +58,24 @@ pipeline {
             }
         }
 
+        stage("Docker Login") {  // ✅ Secure Docker Login
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'DOCKERHUB_CREDENTIALS', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                    }
+                }
+            }
+        }
+
         stage('Build & Push Docker Image') {
             steps {
                 script {
-                    // Build the Docker image
                     def app = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
 
-                    // Authenticate with Docker Hub and push the image
                     docker.withRegistry('https://index.docker.io/v1/', 'DOCKERHUB_CREDENTIALS') {
-                        app.push('latest')
                         app.push("${env.BUILD_NUMBER}")
+                        app.push("latest")
                     }
                 }
             }
@@ -76,7 +84,7 @@ pipeline {
         stage("Trivy Scan") {
             steps {
                 script {
-                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:latest --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL --format table"
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${IMAGE_NAME}:${env.BUILD_NUMBER} --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL --format table"
                 }
             }
         }
@@ -86,7 +94,6 @@ pipeline {
                 script {
                     sh "docker rmi ${IMAGE_NAME}:${env.BUILD_NUMBER} || true"
                     sh "docker rmi ${IMAGE_NAME}:latest || true"
-
                 }
             }
         }
@@ -95,7 +102,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    curl -v -k --user ChiomaVee:${JENKINS_API_TOKEN} \\
+                    curl -v -k --user ${JENKINS_USER}:${JENKINS_API_TOKEN} \\
                     -X POST -H 'cache-control: no-cache' -H 'content-type: application/x-www-form-urlencoded' \\
                     --data 'IMAGE_TAG=${IMAGE_TAG}' \\
                     'http://ec2-13-232-128-192.ap-south-1.compute.amazonaws.com:8080/job/gitops-register-app-cd/buildWithParameters?token=gitops-token'
