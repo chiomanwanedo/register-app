@@ -1,20 +1,20 @@
 pipeline {
     agent { label 'jenkins-agent' }
-    
+
     tools {
         jdk 'Java17'
         maven 'Maven3'
     }
-    
+
     environment {
-        APP_NAME = "register-app-pipeline"
+        APP_NAME = "register-app"  // Ensure this matches your Docker Hub repository
         RELEASE = "1.0.0"
         DOCKER_CREDENTIALS = credentials("DOCKERHUB_CREDENTIALS")
-        IMAGE_NAME = "chiomanwanedo/${APP_NAME}"
+        IMAGE_NAME = "chiomanwanedo/${APP_NAME}" 
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
         JENKINS_API_TOKEN = credentials("jenkins-api-token")
     }
-    
+
     stages {
         stage("Cleanup Workspace") {
             steps {
