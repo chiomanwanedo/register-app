@@ -11,8 +11,7 @@ pipeline {
         RELEASE = "1.0.0"
         DOCKER_CREDENTIALS = credentials("DOCKERHUB_CREDENTIALS")
         IMAGE_NAME = "chiomavee/${APP_NAME}"
-        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}" // Consider adding commit hash: "${RELEASE}-${BUILD_NUMBER}-${GIT_COMMIT}"
-        //JENKINS_API_TOKEN = credentials("jenkins-api-token") // Remove this! Use better CD trigger
+        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}" 
     }
 
     stages {
